@@ -23,30 +23,48 @@ Ensure you have a Go environment set up, then follow these steps:
    ```
 
 ## Usage
-
-To use Go-Lemmings, execute the following command with the appropriate flags:
+Run Go-Lemmings with the following command:
 
 ```
-./go-lemmings -l [target load] -m [max processes] [command template]
+./go-lemmings -l [target load] -m [max processes] [-d delay ms] [-i ignore err] [command template]
 ```
 
-- `-l [target load]`: Desired system load level. Go-Lemmings will spawn processes to try and reach this load.
-- `-m [max processes]`: The maximum number of processes that can be spawned.
-- `[command template]`: The command to be executed as new processes, where `{random}` can be used to inject a random number.
+Options:
+- `-l [target load]`: The target system load that Go-Lemmings will attempt to maintain.
+- `-m [max processes]`: The maximum number of processes that Go-Lemmings will spawn.
+- `-d [delay ms]`: (Optional) Delay in milliseconds to wait after starting each process.
+- `-i [ignore err]`: (Optional) A substring of the error output to ignore. If this substring is found in the error output of a process, that error will be logged but not cause all processes to terminate.
 
-### Example
+`[command template]`: The command that Go-Lemmings will run as new processes. Use `{random}` in the template to insert a random uint32 value into each command instance.
 
-To keep the system load around 5 with no more than 250 processes executing a sleep command, run:
+### Examples
 
-```bash
-./go-lemmings -l 5 -m 250 sleep 0.1
-```
+- To maintain a system load of 5 with a maximum of 250 processes, each executing a command that sleeps for 0.1 seconds:
+  ```bash
+  ./go-lemmings -l 5 -m 250 sleep 0.1
+  ```
 
-For commands that should include a random component, use `{random}` in the template:
+- To run the same setup with a delay of 100 milliseconds between process starts:
+  ```bash
+  ./go-lemmings -l 5 -m 250 -d 100 sleep 0.1
+  ```
 
-```bash
-./go-lemmings -l 5 -m 250 'echo {random} && sleep 0.1'
-```
+- To ignore errors containing the substring "timeout" while running the commands:
+  ```bash
+  ./go-lemmings -l 5 -m 250 -i timeout 'ping -c 1 google.com'
+  ```
+
+Errors that contain the specified string in `-i` will be logged, allowing Go-Lemmings to continue operation despite these errors.
+
+- To keep the system load around 5 with no more than 250 processes executing a sleep command, run:
+  ```bash
+  ./go-lemmings -l 5 -m 250 sleep 0.1
+  ```
+
+- For commands that should include a random component, use `{random}` in the template:
+  ```bash
+  ./go-lemmings -l 5 -m 250 'echo {random} && sleep 0.1'
+  ```
 
 Go-Lemmings will replace `{random}` with a random uint32 integer each time it initiates a process.
 

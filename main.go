@@ -41,9 +41,10 @@ func spawnProcess(template string, failed chan string, durations chan time.Durat
 	}
 }
 
-func monitorAndSpawn(template string, targetLoad float64, maxProcesses int) {
+func monitorAndSpawn(template string, targetLoad float64, maxProcesses, delayMs int, ignoreErr string) {
 	failed := make(chan string)
 	durations := make(chan time.Duration)
+	ignoredErrors := 0
 
 	processes := 0
 	completed := 0
@@ -54,6 +55,7 @@ func monitorAndSpawn(template string, targetLoad float64, maxProcesses int) {
 		if processes < maxProcesses && getSystemLoad() < targetLoad {
 			go spawnProcess(template, failed, durations)
 			processes++
+			time.Sleep(time.Millisecond * time.Duration(delayMs))
 			continue
 		}
 
@@ -62,16 +64,19 @@ func monitorAndSpawn(template string, targetLoad float64, maxProcesses int) {
 			totalDuration += duration
 			processes--
 			completed++
-			// Avoid division by zero
 			avgDuration := totalDuration / time.Duration(completed)
-			log.Printf("Process completed. Running: %d, Completed %d, Avg Time/Process: %s, Last Process Time: %s",
-				processes, completed, avgDuration, duration)
-		case output := <-failed:
-			// stop spawning new processes and exit
-			log.Printf("Process failed with output:\n%s\n", output)
+			log.Printf("Process completed. Errors: %d, Running: %d, Completed %d, Avg Time/Process: %s, Last Process Time: %s",
+				ignoredErrors, processes, completed, avgDuration, duration)
+		case errMsg := <-failed:
+			if ignoreErr != "" && strings.Contains(errMsg, ignoreErr) {
+				ignoredErrors++
+				log.Printf("Ignoring error")
+				continue
+			}
+
+			log.Printf("Process failed with output:\n%s\n", errMsg)
 			return
 		case <-ticker.C:
-			// Skip waiting for ticker if maxProcesses reached
 			if processes >= maxProcesses {
 				continue
 			}
@@ -82,15 +87,18 @@ func monitorAndSpawn(template string, targetLoad float64, maxProcesses int) {
 func main() {
 	var targetLoad float64
 	var maxProcesses int
+	var delayMs int
+	var ignoreErr string
 
 	flag.Float64Var(&targetLoad, "l", 0.5, "target system load")
 	flag.IntVar(&maxProcesses, "m", 10, "maximum number of processes to spawn")
+	flag.IntVar(&delayMs, "d", 0, "delay in milliseconds after executing a process")
+	flag.StringVar(&ignoreErr, "i", "", "error string to ignore")
 	flag.Parse()
 
-	// Concatenate all remaining command-line arguments into a single template string
 	template := strings.Join(flag.Args(), " ")
 	if template == "" {
-		fmt.Println("Usage: go-lemmings -l [target load] -m [max processes] [template]")
+		fmt.Println("Usage: go-lemmings -l [target load] -m [max processes] -d [delay ms] -i [ignore err] [template]")
 		return
 	}
 
@@ -99,5 +107,5 @@ func main() {
 		return
 	}
 
-	monitorAndSpawn(template, targetLoad, maxProcesses)
+	monitorAndSpawn(template, targetLoad, maxProcesses, delayMs, ignoreErr)
 }
