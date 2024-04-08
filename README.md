@@ -8,7 +8,7 @@ Ensure you have a Go environment set up, then follow these steps:
 
 1. Clone the source code (assuming you have it in a Git repository):
    ```bash
-   git clone https://your-repository-url/go-lemmings.git
+   git clone https://github.com/Agusx1211/go-lemmings.git
    cd go-lemmings
    ```
 
