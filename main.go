@@ -50,6 +50,7 @@ func monitorAndSpawn(template string, targetLoad float64, maxProcesses, delayMs 
 	completed := 0
 	totalDuration := time.Duration(0)
 	ticker := time.NewTicker(500 * time.Millisecond)
+	start := time.Now()
 
 	for {
 		if processes < maxProcesses && getSystemLoad() < targetLoad {
@@ -65,8 +66,9 @@ func monitorAndSpawn(template string, targetLoad float64, maxProcesses, delayMs 
 			processes--
 			completed++
 			avgDuration := totalDuration / time.Duration(completed)
-			log.Printf("Process completed. Errors: %d, Running: %d, Completed %d, Avg Time/Process: %s, Last Process Time: %s",
-				ignoredErrors, processes, completed, avgDuration, duration)
+			runsMin := (float64(completed) / time.Since(start).Seconds()) * 60
+			log.Printf("Process completed. Errors: %d, Running: %d, Completed %d, Avg Time/Process: %s, Last Process Time: %s, Runs/Min: %f\n",
+				ignoredErrors, processes, completed, avgDuration, duration, runsMin)
 		case errMsg := <-failed:
 			if ignoreErr != "" && strings.Contains(errMsg, ignoreErr) {
 				ignoredErrors++
