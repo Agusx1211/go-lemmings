@@ -57,7 +57,6 @@ func monitorAndSpawn(template string, targetLoad float64, maxProcesses, delayMs 
 			go spawnProcess(template, failed, durations)
 			processes++
 			time.Sleep(time.Millisecond * time.Duration(delayMs))
-			continue
 		}
 
 		select {
